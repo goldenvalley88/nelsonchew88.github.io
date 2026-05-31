@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KSG Seafood – Beverage</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --red:#c0392b;--red-dk:#96281b;--hot:#e74c3c;--cold:#2980b9;
+      --green:#27ae60;--orange:#e67e22;--purple:#6f42c1;
+      --bg:#f0f0f0;--txt:#2c3e50;--txt2:#7f8c8d;--border:#e0e0e0;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);max-width:480px;margin:0 auto;min-height:100vh;}
+    .view{display:none;min-height:100vh;}
+    .view.active{display:block;}
+
+    /* HEADER */
+    .hdr{background:var(--red);color:#fff;padding:13px 16px 11px;text-align:center;position:sticky;top:0;z-index:90;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+    .hdr h1{font-size:16px;font-weight:800;}
+    .hdr p{font-size:11px;opacity:.8;margin-top:2px;}
+    .hdr-row{display:flex;justify-content:space-between;align-items:center;}
+    .cashier-chip{background:rgba(255,255,255,.2);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
+
+    /* BOTTOM NAV */
+    .bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -2px 12px rgba(0,0,0,.08);}
+    .nbtn{flex:1;padding:8px 2px 10px;border:none;background:none;font-size:10px;color:var(--txt2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:600;}
+    .nbtn.active{color:var(--red);}
+    .nbtn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .badge{background:var(--red);color:#fff;border-radius:10px;font-size:10px;padding:1px 5px;min-width:16px;text-align:center;}
+    .wrap{padding-bottom:68px;}
+
+    /* CASHIER LOGIN */
+    .login-wrap{padding:48px 24px 32px;}
+    .login-wrap .logo{text-align:center;margin-bottom:32px;}
+    .login-wrap .logo div{width:72px;height:72px;background:var(--red);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 12px;}
+    .login-wrap .logo h2{font-size:22px;font-weight:800;}
+    .login-wrap .logo p{font-size:13px;color:var(--txt2);margin-top:4px;}
+    .fg{margin-bottom:14px;}
+    .fg label{display:block;font-size:12px;font-weight:700;margin-bottom:5px;color:var(--txt2);}
+    .fg input,.fg select,.fg textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;font-family:inherit;background:#fff;}
+    .fg input:focus,.fg textarea:focus{outline:none;border-color:var(--red);}
+    .errmsg{color:var(--hot);font-size:13px;margin-bottom:10px;min-height:18px;font-weight:600;}
+
+    /* BUTTONS */
+    .btn1{width:100%;padding:14px;background:var(--red);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;}
+    .btn1:active{background:var(--red-dk);}
+    .btn2{width:100%;padding:12px;background:#fff;color:var(--red);border:2px solid var(--red);border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;}
+    .btn3{padding:9px 16px;background:var(--green);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;}
+    .btn4{padding:9px 16px;background:#fde8e8;color:var(--hot);border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;margin-left:8px;}
+    .btn-sm{padding:5px 11px;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;}
+    .btn-modify{background:#fff3cd;color:#856404;}
+    .btn-cancel{background:#fde8e8;color:var(--hot);margin-left:6px;}
+
+    /* TABLE BAR */
+    .tbar{background:#fff;padding:9px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}
+    .tbar label{font-size:12px;font-weight:700;white-space:nowrap;}
+    .tbar input[type=text]{border:1.5px solid var(--border);border-radius:8px;padding:6px 8px;font-size:15px;font-weight:800;width:58px;text-align:center;}
+    .tbar input[type=date]{border:1.5px solid var(--border);border-radius:8px;padding:6px 8px;font-size:12px;flex:1;min-width:0;}
+    .tbar input:focus{outline:none;border-color:var(--red);}
+
+    /* MENU GRID */
+    .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;}
+    .mcard{background:#fff;border-radius:14px;padding:12px 11px 10px;cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.07);border:2px solid transparent;transition:transform .1s;user-select:none;}
+    .mcard:active{transform:scale(.96);border-color:var(--red);}
+    .mcard.off{opacity:.35;pointer-events:none;}
+    .mcard h3{font-size:13px;font-weight:800;margin-bottom:6px;line-height:1.3;}
+    .ptags{display:flex;flex-wrap:wrap;gap:5px;}
+    .ptag{font-size:10px;padding:3px 7px;border-radius:20px;font-weight:700;}
+    .ptag.h{background:#fde8e8;color:var(--hot);}
+    .ptag.c{background:#ddeeff;color:var(--cold);}
+
+    /* MODAL / SHEET */
+    .ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:flex-end;justify-content:center;}
+    .ovl.show{display:flex;}
+    .sheet{background:#fff;border-radius:22px 22px 0 0;padding:14px 20px 36px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+    .handle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 14px;}
+    .sheet h2{font-size:19px;font-weight:800;}
+    .sheet .sub{color:var(--txt2);font-size:13px;margin:4px 0 16px;}
+    .slbl{font-size:11px;font-weight:800;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px;}
+    .ttog{display:flex;background:var(--bg);border-radius:10px;padding:3px;margin-bottom:16px;}
+    .tbtn{flex:1;padding:10px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;background:none;color:var(--txt2);transition:all .2s;}
+    .tbtn.h.on{background:var(--hot);color:#fff;}
+    .tbtn.c.on{background:var(--cold);color:#fff;}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+    .chip{padding:7px 13px;border:2px solid var(--border);border-radius:20px;font-size:13px;cursor:pointer;transition:all .15s;background:#fff;font-weight:600;}
+    .chip.on{border-color:var(--red);background:var(--red);color:#fff;}
+    .ntxt{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;resize:none;font-family:inherit;margin-bottom:16px;}
+    .ntxt:focus{outline:none;border-color:var(--red);}
+    .qrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+    .qctr{display:flex;align-items:center;gap:14px;}
+    .qbtn{width:38px;height:38px;border-radius:50%;border:2px solid var(--red);background:#fff;color:var(--red);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;}
+    .qbtn:active{background:var(--red);color:#fff;}
+    .qnum{font-size:22px;font-weight:800;min-width:26px;text-align:center;}
+    .pdsp{font-size:24px;font-weight:900;color:var(--red);}
+
+    /* PAYMENT */
+    .pay-toggle{display:flex;gap:10px;margin-bottom:14px;}
+    .pay-btn{flex:1;padding:13px 8px;border:2px solid var(--border);border-radius:12px;font-size:15px;font-weight:800;background:#fff;cursor:pointer;color:var(--txt2);text-align:center;transition:all .2s;}
+    .pay-btn.cash.on{border-color:var(--green);background:#d4edda;color:#155724;}
+    .pay-btn.qr.on{border-color:var(--purple);background:#f3e9ff;color:var(--purple);}
+    .pbadge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;}
+    .pbadge.cash{background:#d4edda;color:#155724;}
+    .pbadge.qr{background:#f3e9ff;color:var(--purple);}
+
+    /* CART */
+    .empty{text-align:center;padding:60px 20px;color:var(--txt2);}
+    .empty svg{width:56px;height:56px;margin-bottom:12px;opacity:.22;}
+    .clist{padding:12px 14px 0;}
+    .citem{background:#fff;border-radius:12px;padding:12px 13px;margin-bottom:9px;display:flex;gap:10px;align-items:flex-start;}
+    .ci-info{flex:1;}
+    .ci-name{font-weight:800;font-size:15px;}
+    .ci-det{font-size:12px;color:var(--txt2);margin-top:3px;}
+    .ci-price{font-weight:800;color:var(--red);white-space:nowrap;}
+    .ci-rm{background:none;border:none;color:#bbb;font-size:22px;cursor:pointer;line-height:1;padding:0 2px;}
+    .csum{background:#fff;margin:4px 14px 0;border-radius:12px;padding:14px;}
+    .crow{display:flex;justify-content:space-between;font-size:14px;margin-bottom:7px;}
+    .ctot{font-size:19px;font-weight:900;border-top:1px solid var(--border);padding-top:9px;margin-top:3px;}
+    .cact{padding:14px;}
+    .modify-banner{background:#fff3cd;border:1.5px solid #ffc107;border-radius:10px;padding:10px 14px;margin:12px 14px 0;font-size:13px;font-weight:700;color:#856404;display:flex;justify-content:space-between;align-items:center;}
+    .modify-banner button{background:#856404;color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;}
+
+    /* RECENT ORDERS */
+    .rec-sec{padding:14px;}
+    .rec-sec h3{font-size:13px;font-weight:800;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+    .rec-card{background:#fff;border-radius:12px;padding:12px;margin-bottom:9px;border-left:3px solid var(--border);}
+    .rec-card.modified{border-left-color:var(--orange);}
+    .rec-card.cancelled{border-left-color:var(--hot);opacity:.6;}
+    .rec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+    .rec-tbl{font-weight:800;font-size:14px;}
+    .rec-time{font-size:11px;color:var(--txt2);}
+    .rec-items{font-size:12px;color:var(--txt2);margin-bottom:7px;}
+    .rec-foot{display:flex;justify-content:space-between;align-items:center;}
+    .rec-total{font-weight:800;color:var(--red);font-size:14px;}
+    .rec-actions{display:flex;gap:6px;}
+
+    /* BADGES */
+    .sbadge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;}
+    .sbadge.pending{background:#fff3cd;color:#856404;}
+    .sbadge.done{background:#d4edda;color:#155724;}
+    .sbadge.modified{background:#fde8e8;color:var(--orange);border:1px solid var(--orange);}
+    .sbadge.cancelled{background:#f8d7da;color:var(--hot);}
+
+    /* ADMIN */
+    .alog{padding:36px 22px;}
+    .alog h2{font-size:22px;font-weight:800;margin-bottom:4px;}
+    .alog p{color:var(--txt2);font-size:14px;margin-bottom:26px;}
+    .flink{text-align:right;font-size:13px;color:var(--red);cursor:pointer;margin-top:-6px;margin-bottom:14px;font-weight:600;}
+    .atabs{display:flex;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;}
+    .atab{flex:0 0 auto;padding:11px 14px;border:none;background:none;font-size:12px;font-weight:700;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+    .atab.on{color:var(--red);border-bottom-color:var(--red);}
+    .abox{padding:14px;}
+    .dfilter{display:flex;gap:8px;margin-bottom:14px;align-items:center;}
+    .dfinp{border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;flex:1;}
+    .dfbtn{background:var(--red);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;}
+
+    /* ORDER CARDS */
+    .ocard{background:#fff;border-radius:12px;padding:13px;margin-bottom:10px;border-left:3px solid transparent;}
+    .ocard.modified{border-left-color:var(--orange);}
+    .ocard.cancelled{border-left-color:var(--hot);opacity:.65;}
+    .ochead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px;}
+    .otbl{font-weight:800;font-size:15px;}
+    .oitms{font-size:12px;color:var(--txt2);margin-bottom:7px;line-height:1.5;}
+    .ofoot{display:flex;justify-content:space-between;align-items:center;}
+    .otot{font-weight:800;color:var(--red);font-size:14px;}
+    .mdone{background:var(--green);color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;}
+    .audit-log{background:#f9f9f9;border-radius:8px;padding:9px 11px;margin-top:9px;border:1px solid var(--border);}
+    .audit-log p{font-size:11px;color:var(--txt2);margin-bottom:3px;}
+    .audit-entry{font-size:11px;padding:4px 0;border-bottom:1px dashed var(--border);}
+    .audit-entry:last-child{border:none;}
+    .audit-by{font-weight:700;color:var(--txt);}
+    .audit-action.modified{color:var(--orange);}
+    .audit-action.cancelled{color:var(--hot);}
+
+    /* MENU EDITOR */
+    .newfrm{background:#fff;border-radius:12px;padding:15px;margin-bottom:14px;border:2px dashed var(--border);}
+    .newfrm h3{font-size:14px;font-weight:800;margin-bottom:11px;}
+    .pf2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .pf label{font-size:11px;color:var(--txt2);display:block;margin-bottom:4px;font-weight:700;}
+    .pf input{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;}
+    .pf input:focus{outline:none;border-color:var(--red);}
+    .eicard{background:#fff;border-radius:12px;padding:13px;margin-bottom:9px;}
+    .eichd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+    .eichd h4{font-size:14px;font-weight:800;}
+    .tswitch{position:relative;width:44px;height:24px;flex-shrink:0;}
+    .tswitch input{opacity:0;width:0;height:0;}
+    .tslider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.3s;}
+    .tslider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
+    .tswitch input:checked+.tslider{background:var(--green);}
+    .tswitch input:checked+.tslider:before{transform:translateX(20px);}
+    .eibtn{display:flex;gap:0;margin-top:10px;}
+
+    /* CASHIER MANAGEMENT */
+    .ccard{background:#fff;border-radius:12px;padding:13px;margin-bottom:9px;display:flex;align-items:center;gap:12px;}
+    .cavatar{width:42px;height:42px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0;}
+    .cinfo{flex:1;}
+    .cname{font-weight:800;font-size:14px;}
+    .cid{font-size:12px;color:var(--txt2);margin-top:2px;}
+    .cstatus{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700;}
+    .cstatus.active{background:#d4edda;color:#155724;}
+    .cstatus.inactive{background:#f8d7da;color:var(--hot);}
+    .cdel{background:#fde8e8;color:var(--hot);border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;}
+    .creset{background:#e8f4fd;color:var(--cold);border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;margin-right:6px;}
+
+    /* CHART */
+    .chart-wrap{background:#fff;border-radius:12px;padding:14px;margin-bottom:14px;}
+    .chart-wrap h3{font-size:14px;font-weight:800;margin-bottom:4px;}
+    .chart-wrap p{font-size:12px;color:var(--txt2);margin-bottom:12px;}
+    .chart-range{display:flex;gap:6px;margin-bottom:12px;}
+    .crbtn{padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;font-size:12px;font-weight:700;background:#fff;cursor:pointer;color:var(--txt2);}
+    .crbtn.on{background:var(--red);color:#fff;border-color:var(--red);}
+    .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+    .stat-box{background:#fff;border-radius:12px;padding:12px 14px;text-align:center;}
+    .stat-box .sv{font-size:20px;font-weight:900;color:var(--red);}
+    .stat-box .sl{font-size:10px;color:var(--txt2);font-weight:700;margin-top:3px;}
+
+    /* SETTINGS */
+    .ssec{background:#fff;border-radius:12px;padding:15px;margin-bottom:14px;}
+    .ssec h3{font-size:15px;font-weight:800;margin-bottom:10px;}
+    .ssec p{font-size:13px;color:var(--txt2);margin-bottom:12px;}
+    .bdanger{width:100%;padding:13px;background:var(--hot);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;}
+
+    /* REASON MODAL */
+    .reason-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:flex;align-items:flex-end;justify-content:center;}
+    .reason-box{background:#fff;border-radius:20px 20px 0 0;padding:22px 20px 36px;width:100%;max-width:480px;}
+    .reason-box h3{font-size:17px;font-weight:800;margin-bottom:14px;}
+    .reason-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+    .ropt{padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;}
+    .ropt.on{border-color:var(--red);background:#fde8e8;color:var(--red);}
+
+    /* TOAST */
+    .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#1a252f;color:#fff;padding:10px 22px;border-radius:22px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90%;text-align:center;}
+    .toast.show{opacity:1;}
+    .ldr{text-align:center;padding:44px;color:var(--txt2);font-size:14px;}
+  </style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- REASON MODAL -->
+<div class="reason-modal" id="reason-modal" style="display:none;">
+  <div class="reason-box">
+    <h3>⚠️ Sebab Batalkan / Ubah Order</h3>
+    <div class="reason-opts" id="reason-opts">
+      <div class="ropt" onclick="selReason(this,'Pelanggan tukar minuman')">Pelanggan tukar minuman</div>
+      <div class="ropt" onclick="selReason(this,'Salah input')">Salah input</div>
+      <div class="ropt" onclick="selReason(this,'Pelanggan batalkan')">Pelanggan batalkan</div>
+      <div class="ropt" onclick="selReason(this,'Minuman habis')">Minuman habis</div>
+    </div>
+    <div class="fg" style="margin-bottom:14px;">
+      <label>Atau tulis sebab lain:</label>
+      <textarea id="reason-custom" class="ntxt" rows="2" placeholder="Tulis sebab..."></textarea>
+    </div>
+    <button class="btn1" onclick="confirmReason()">Teruskan</button>
+    <button class="btn2" onclick="closeReason()">Batal</button>
+  </div>
+</div>
+
+<!-- ═══ CASHIER LOGIN VIEW ═══ -->
+<div class="view active" id="view-login">
+  <div class="hdr"><h1>☕ KSG Seafood Beverage</h1><p>Sistem Order Minuman</p></div>
+  <div class="login-wrap">
+    <div class="logo">
+      <div>☕</div>
+      <h2>Log Masuk Cashier</h2>
+      <p>Masukkan ID dan password anda</p>
+    </div>
+    <div class="fg"><label>Cashier ID</label><input type="text" id="c-id" placeholder="Contoh: C001" autocomplete="off" /></div>
+    <div class="fg"><label>Password</label><input type="password" id="c-pw" placeholder="Masukkan password..." /></div>
+    <div class="errmsg" id="c-err"></div>
+    <button class="btn1" onclick="cashierLogin()">Log Masuk</button>
+    <p style="text-align:center;font-size:12px;color:var(--txt2);margin-top:20px;">Admin? <span style="color:var(--red);cursor:pointer;font-weight:700;" onclick="showAdminFromLogin()">Login Admin →</span></p>
+  </div>
+</div>
+
+<!-- ═══ CASHIER VIEW ═══ -->
+<div class="view" id="view-cashier">
+  <div class="hdr">
+    <div class="hdr-row">
+      <span style="width:80px;"></span>
+      <h1>☕ KSG Seafood</h1>
+      <span class="cashier-chip" id="cashier-chip" onclick="cashierLogout()">👤 –</span>
+    </div>
+    <p>Tap minuman untuk tambah order</p>
+  </div>
+  <div class="wrap">
+    <div class="tbar">
+      <label>Meja:</label>
+      <input type="text" id="table-no" placeholder="No." maxlength="6" inputmode="text" />
+      <label>Tarikh:</label>
+      <input type="date" id="order-date" />
+    </div>
+    <div class="mgrid" id="menu-grid"><div class="ldr">Loading menu…</div></div>
+  </div>
+</div>
+
+<!-- ═══ CART VIEW ═══ -->
+<div class="view" id="view-cart">
+  <div class="hdr"><h1>🧾 Semak Order</h1><p id="cart-tbl">Meja: –</p></div>
+  <div class="wrap">
+    <div id="modify-banner" style="display:none;" class="modify-banner">
+      <span>✏️ Mode Edit Order</span>
+      <button onclick="cancelModifyMode()">Batal Edit</button>
+    </div>
+    <div id="cart-body"></div>
+    <div class="rec-sec" id="rec-sec" style="display:none;">
+      <h3>📋 Order Terkini (Hari Ini)</h3>
+      <div id="rec-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN VIEW ═══ -->
+<div class="view" id="view-admin">
+  <div class="hdr"><h1>⚙️ Admin Panel</h1><p>KSG Seafood Management</p></div>
+  <div id="sec-login">
+    <div class="alog">
+      <h2>Admin Login</h2>
+      <p>Login untuk urus menu, cashier dan order</p>
+      <div class="fg"><label>Email</label><input type="email" id="a-email" value="nelson.chew0315@gmail.com" /></div>
+      <div class="fg"><label>Password</label><input type="password" id="a-pw" placeholder="Masukkan password" /></div>
+      <div class="flink" onclick="pwReset()">Lupa password? Hantar emel reset</div>
+      <div class="errmsg" id="a-err"></div>
+      <button class="btn1" onclick="doLogin()">Login Admin</button>
+    </div>
+  </div>
+  <div id="sec-panel" style="display:none;">
+    <div class="atabs">
+      <button class="atab on" onclick="aTab('orders',this)">Orders</button>
+      <button class="atab" onclick="aTab('chart',this)">📊 Sales</button>
+      <button class="atab" onclick="aTab('cashiers',this)">👥 Cashier</button>
+      <button class="atab" onclick="aTab('menu',this)">Menu</button>
+      <button class="atab" onclick="aTab('settings',this)">Settings</button>
+    </div>
+
+    <!-- Orders -->
+    <div id="at-orders" class="abox">
+      <div class="dfilter">
+        <input type="date" id="d-filter" class="dfinp" />
+        <button class="dfbtn" onclick="loadOrders()">Filter</button>
+      </div>
+      <div id="order-list"><div class="ldr">Loading…</div></div>
+    </div>
+
+    <!-- Sales Chart -->
+    <div id="at-chart" class="abox" style="display:none;">
+      <div class="stat-row">
+        <div class="stat-box"><div class="sv" id="stat-today">–</div><div class="sl">Jualan Hari Ini</div></div>
+        <div class="stat-box"><div class="sv" id="stat-orders">–</div><div class="sl">Order Hari Ini</div></div>
+        <div class="stat-box"><div class="sv" id="stat-week">–</div><div class="sl">Jualan 7 Hari</div></div>
+        <div class="stat-box"><div class="sv" id="stat-avg">–</div><div class="sl">Purata/Hari</div></div>
+      </div>
+      <div class="chart-wrap">
+        <h3>📈 Jualan Harian</h3>
+        <p>Hasil jualan minuman mengikut tarikh</p>
+        <div class="chart-range">
+          <button class="crbtn on" onclick="setRange(7,this)">7 Hari</button>
+          <button class="crbtn" onclick="setRange(14,this)">14 Hari</button>
+          <button class="crbtn" onclick="setRange(30,this)">30 Hari</button>
+        </div>
+        <canvas id="sales-chart" height="220"></canvas>
+      </div>
+      <div class="chart-wrap">
+        <h3>🏆 Top 5 Minuman</h3>
+        <p>Minuman paling popular hari ini</p>
+        <canvas id="top-chart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Cashier Management -->
+    <div id="at-cashiers" class="abox" style="display:none;">
+      <div class="newfrm">
+        <h3>+ Tambah Cashier Baru</h3>
+        <div class="fg"><label>Nama Penuh</label><input id="nc-name" placeholder="Contoh: Ahmad bin Ali" /></div>
+        <div class="pf2">
+          <div class="pf"><label>Cashier ID</label><input id="nc-id" placeholder="Contoh: C001" /></div>
+          <div class="pf"><label>Password</label><input type="password" id="nc-pw" placeholder="Min 4 aksara" /></div>
+        </div>
+        <button class="btn1" style="margin-top:12px;" onclick="addCashier()">Tambah Cashier</button>
+      </div>
+      <div id="cashier-list"><div class="ldr">Loading…</div></div>
+    </div>
+
+    <!-- Menu -->
+    <div id="at-menu" class="abox" style="display:none;">
+      <div class="newfrm">
+        <h3>+ Tambah Minuman Baru</h3>
+        <div class="fg"><label>Nama</label><input id="ni-name" placeholder="e.g. Teh Halia" /></div>
+        <div class="pf2">
+          <div class="pf"><label>🔥 Harga Hot (RM)</label><input type="number" id="ni-hot" step="0.50" placeholder="0.00" inputmode="decimal" /></div>
+          <div class="pf"><label>❄️ Harga Cold (RM)</label><input type="number" id="ni-cold" step="0.50" placeholder="0.00" inputmode="decimal" /></div>
+        </div>
+        <button class="btn1" style="margin-top:12px;" onclick="addItem()">Tambah</button>
+      </div>
+      <div id="menu-edit-list"><div class="ldr">Loading…</div></div>
+    </div>
+
+    <!-- Settings -->
+    <div id="at-settings" class="abox" style="display:none;">
+      <div class="ssec">
+        <h3>Tukar Password Admin</h3>
+        <p>Link reset password akan dihantar ke emel anda.</p>
+        <button class="btn1" onclick="pwReset()">Hantar Emel Reset</button>
+      </div>
+      <div class="ssec">
+        <h3>Logout Admin</h3>
+        <button class="bdanger" onclick="doLogout()">Logout</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav" id="bnav" style="display:none;">
+  <button class="nbtn active" id="n-cashier" onclick="gv('cashier',this)">
+    <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Order
+  </button>
+  <button class="nbtn" id="n-cart" onclick="gv('cart',this)">
+    <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    Troli <span class="badge" id="cbadge" style="display:none;">0</span>
+  </button>
+  <button class="nbtn" id="n-admin" onclick="gv('admin',this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Admin
+  </button>
+</nav>
+
+<!-- ITEM MODAL -->
+<div class="ovl" id="ovl" onclick="closeOvl(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="handle"></div>
+    <h2 id="m-name"></h2>
+    <p class="sub" id="m-sub"></p>
+    <p class="slbl">Suhu</p>
+    <div class="ttog">
+      <button class="tbtn h on" id="tbh" onclick="setTemp('hot')">🔥 Panas (Hot)</button>
+      <button class="tbtn c" id="tbc" onclick="setTemp('cold')">❄️ Ais (Cold)</button>
+    </div>
+    <p class="slbl">Add-ons</p>
+    <div class="chips" id="m-chips"></div>
+    <p class="slbl">Nota Khas</p>
+    <textarea class="ntxt" id="m-notes" placeholder="Arahan tambahan…" rows="2"></textarea>
+    <div class="qrow">
+      <div class="qctr">
+        <button class="qbtn" onclick="chgQty(-1)">−</button>
+        <span class="qnum" id="m-qty">1</span>
+        <button class="qbtn" onclick="chgQty(1)">+</button>
+      </div>
+      <span class="pdsp" id="m-price">RM0.00</span>
+    </div>
+    <button class="btn1" onclick="addToCart()">Tambah ke Order</button>
+  </div>
+</div>
+
+<!-- RESET PASSWORD MODAL (admin resets cashier pw) -->
+<div class="ovl" id="reset-ovl" onclick="closeResetOvl(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="handle"></div>
+    <h2>🔑 Reset Password Cashier</h2>
+    <p class="sub" id="reset-cashier-name"></p>
+    <div class="fg" style="margin-top:12px;"><label>Password Baru</label><input type="password" id="reset-new-pw" placeholder="Min 4 aksara" /></div>
+    <div class="errmsg" id="reset-err"></div>
+    <button class="btn1" onclick="confirmResetPw()">Simpan Password Baru</button>
+    <button class="btn2" onclick="closeResetOvl()">Batal</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  FIREBASE
+// ══════════════════════════════════════════════
+firebase.initializeApp({
+  apiKey:            "AIzaSyCtoo0ohk0ST_htRphiHKneXVmrLey-Rik",
+  authDomain:        "golden-valley-beverage.firebaseapp.com",
+  projectId:         "golden-valley-beverage",
+  storageBucket:     "golden-valley-beverage.firebasestorage.app",
+  messagingSenderId: "446526183706",
+  appId:             "1:446526183706:web:5777e5df11b9761e8a34a3"
+});
+const db=firebase.firestore(), auth=firebase.auth();
+
+// ══════════════════════════════════════════════
+//  DEFAULT MENU
+// ══════════════════════════════════════════════
+const MENU_DEFAULT=[
+  {name:'Kopi O',hotPrice:2.00,coldPrice:2.50,available:true,order:0},
+  {name:'Kopi',hotPrice:3.00,coldPrice:3.50,available:true,order:1},
+  {name:'Kopi C',hotPrice:3.00,coldPrice:3.50,available:true,order:2},
+  {name:'Teh O',hotPrice:2.00,coldPrice:2.50,available:true,order:3},
+  {name:'Teh C',hotPrice:2.50,coldPrice:3.00,available:true,order:4},
+  {name:'Teh Tarik',hotPrice:3.00,coldPrice:3.50,available:true,order:5},
+  {name:'Nescafe O/C',hotPrice:3.50,coldPrice:4.00,available:true,order:6},
+  {name:'Milo O/C',hotPrice:3.50,coldPrice:4.00,available:true,order:7},
+  {name:'Lemon',hotPrice:2.50,coldPrice:3.00,available:true,order:8},
+  {name:'Lemon Tea',hotPrice:3.00,coldPrice:3.50,available:true,order:9},
+  {name:'Kitchai',hotPrice:3.00,coldPrice:3.50,available:true,order:10},
+  {name:'Tc Special',hotPrice:4.00,coldPrice:4.00,available:true,order:11},
+  {name:'Wheatgrass',hotPrice:4.00,coldPrice:4.00,available:true,order:12},
+  {name:'Greentea',hotPrice:4.00,coldPrice:4.00,available:true,order:13},
+  {name:'Sirap',hotPrice:3.00,coldPrice:3.00,available:true,order:14},
+  {name:'Sirap Limau',hotPrice:3.50,coldPrice:3.50,available:true,order:15},
+  {name:'Sirap Bandung',hotPrice:4.00,coldPrice:4.00,available:true,order:16},
+  {name:'Cincau Susu',hotPrice:4.00,coldPrice:4.00,available:true,order:17},
+  {name:'ABC',hotPrice:5.00,coldPrice:5.00,available:true,order:18},
+  {name:'Jus',hotPrice:6.90,coldPrice:6.90,available:true,order:19},
+  {name:'Buang Panas',hotPrice:3.00,coldPrice:3.00,available:true,order:20},
+  {name:'Coca-cola/100plus',hotPrice:3.00,coldPrice:3.00,available:true,order:21},
+  {name:'Chinese Tea',hotPrice:0.50,coldPrice:0.50,available:true,order:22},
+  {name:'Air',hotPrice:0.50,coldPrice:0.50,available:true,order:23},
+];
+const ADDONS=['Less Sugar','No Sugar','Kaw','Pok','Kurang Susu'];
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let menuItems=[],cart=[];
+let curItem=null,curTemp='hot',curQty=1,curAddons=[];
+let modifyingOrderId=null,modifyingPayMethod='cash';
+let payMethod='cash';
+let reasonCallback=null,selectedReason='';
+let salesChartInst=null,topChartInst=null,chartDays=7;
+let resetingCashierId=null;
+
+// ══════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('d-filter').value=todayStr();
+  document.getElementById('order-date').value=todayStr();
+
+  // check cashier session
+  const session=getCashierSession();
+  if(session){
+    showMainApp(session.name);
+  }
+  // else stays on login view
+
+  auth.onAuthStateChanged(u=>{if(u) showPanel();});
+
+  // enter key on login
+  document.getElementById('c-pw').addEventListener('keydown',e=>{if(e.key==='Enter')cashierLogin();});
+  document.getElementById('c-id').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('c-pw').focus();});
+});
+
+function todayStr(){return new Date().toISOString().split('T')[0];}
+function getCashierSession(){try{return JSON.parse(sessionStorage.getItem('ksg_cashier'));}catch{return null;}}
+function getCashier(){const s=getCashierSession();return s?s.name:'Unknown';}
+
+// ══════════════════════════════════════════════
+//  CASHIER LOGIN
+// ══════════════════════════════════════════════
+async function cashierLogin(){
+  const cid=document.getElementById('c-id').value.trim().toUpperCase();
+  const cpw=document.getElementById('c-pw').value;
+  const err=document.getElementById('c-err');
+  err.textContent='';
+  if(!cid||!cpw){err.textContent='Sila isi ID dan password.';return;}
+  try{
+    const snap=await db.collection('cashiers')
+      .where('cashierId','==',cid)
+      .where('active','==',true).limit(1).get();
+    if(snap.empty){err.textContent='ID tidak dijumpai atau tidak aktif.';return;}
+    const cashier=snap.docs[0].data();
+    if(cashier.password!==cpw){err.textContent='Password salah.';return;}
+    // success
+    sessionStorage.setItem('ksg_cashier',JSON.stringify({name:cashier.name,id:cid}));
+    showMainApp(cashier.name);
+  }catch(e){err.textContent='Ralat sambungan. Cuba lagi.';console.error(e);}
+}
+
+function showMainApp(name){
+  document.getElementById('view-login').classList.remove('active');
+  document.getElementById('view-cashier').classList.add('active');
+  document.getElementById('bnav').style.display='flex';
+  document.getElementById('cashier-chip').textContent='👤 '+name;
+  loadMenu();
+  patchMenu(); // auto-update prices if needed
+}
+
+function cashierLogout(){
+  if(!confirm('Log keluar sebagai cashier?'))return;
+  sessionStorage.removeItem('ksg_cashier');
+  cart=[];updBadge();
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-login').classList.add('active');
+  document.getElementById('bnav').style.display='none';
+  document.getElementById('c-id').value='';
+  document.getElementById('c-pw').value='';
+  document.getElementById('c-err').textContent='';
+}
+
+function showAdminFromLogin(){
+  document.getElementById('view-login').classList.remove('active');
+  document.getElementById('view-admin').classList.add('active');
+  document.getElementById('bnav').style.display='none';
+}
+
+// ══════════════════════════════════════════════
+//  MENU AUTO-PATCH (update changed prices)
+// ══════════════════════════════════════════════
+async function patchMenu(){
+  try{
+    const snap=await db.collection('beverages').get();
+    const batch=db.batch();let patched=false;
+    snap.forEach(doc=>{
+      const it=doc.data();
+      if(it.name==='Jus'&&(it.hotPrice!==6.90||it.coldPrice!==6.90)){
+        batch.update(doc.ref,{hotPrice:6.90,coldPrice:6.90});patched=true;
+      }
+      if(it.name==='Minuman Tin'){
+        batch.update(doc.ref,{name:'Coca-cola/100plus',hotPrice:3.00,coldPrice:3.00});patched=true;
+      }
+    });
+    if(patched){await batch.commit();loadMenu();}
+  }catch(e){console.error('patch error',e);}
+}
+
+// ══════════════════════════════════════════════
+//  MENU
+// ══════════════════════════════════════════════
+async function loadMenu(){
+  try{
+    const snap=await db.collection('beverages').orderBy('order').get();
+    if(snap.empty){await seedMenu();return loadMenu();}
+    menuItems=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderMenu();
+  }catch(e){document.getElementById('menu-grid').innerHTML='<div class="ldr">⚠️ Gagal load menu.</div>';}
+}
+async function seedMenu(){
+  const b=db.batch();
+  MENU_DEFAULT.forEach(it=>b.set(db.collection('beverages').doc(),it));
+  await b.commit();
+}
+function renderMenu(){
+  const g=document.getElementById('menu-grid');g.innerHTML='';
+  menuItems.forEach(item=>{
+    const d=document.createElement('div');
+    d.className='mcard'+(item.available===false?' off':'');
+    d.innerHTML=`<h3>${item.name}</h3><div class="ptags"><span class="ptag h">🔥 RM${item.hotPrice.toFixed(2)}</span><span class="ptag c">❄️ RM${item.coldPrice.toFixed(2)}</span></div>`;
+    d.onclick=()=>openModal(item);g.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  ITEM MODAL
+// ══════════════════════════════════════════════
+function openModal(item){
+  curItem=item;curTemp='hot';curQty=1;curAddons=[];
+  document.getElementById('m-name').textContent=item.name;
+  document.getElementById('m-notes').value='';
+  setTemp('hot');
+  const ch=document.getElementById('m-chips');ch.innerHTML='';
+  ADDONS.forEach(a=>{
+    const el=document.createElement('div');el.className='chip';el.textContent=a;
+    el.onclick=()=>toggleAddon(el,a);ch.appendChild(el);
+  });
+  updPrice();document.getElementById('ovl').classList.add('show');
+}
+function closeOvl(e){document.getElementById('ovl').classList.remove('show');}
+function setTemp(t){
+  curTemp=t;
+  document.getElementById('tbh').classList.toggle('on',t==='hot');
+  document.getElementById('tbc').classList.toggle('on',t==='cold');
+  updPrice();
+}
+function toggleAddon(el,a){
+  if(curAddons.includes(a)){curAddons=curAddons.filter(x=>x!==a);el.classList.remove('on');}
+  else{curAddons.push(a);el.classList.add('on');}
+}
+function chgQty(d){curQty=Math.max(1,curQty+d);document.getElementById('m-qty').textContent=curQty;updPrice();}
+function updPrice(){
+  if(!curItem)return;
+  const p=curTemp==='hot'?curItem.hotPrice:curItem.coldPrice;
+  document.getElementById('m-sub').textContent=`🔥 Hot RM${curItem.hotPrice.toFixed(2)}  ·  ❄️ Cold RM${curItem.coldPrice.toFixed(2)}`;
+  document.getElementById('m-price').textContent=`RM${(p*curQty).toFixed(2)}`;
+}
+function addToCart(){
+  const p=curTemp==='hot'?curItem.hotPrice:curItem.coldPrice;
+  cart.push({name:curItem.name,temp:curTemp,price:p,qty:curQty,addons:[...curAddons],notes:document.getElementById('m-notes').value.trim()});
+  updBadge();closeOvl();showToast(`✅ ${curItem.name} ditambah`);
+}
+
+// ══════════════════════════════════════════════
+//  CART
+// ══════════════════════════════════════════════
+function updBadge(){
+  const n=cart.reduce((s,i)=>s+i.qty,0);
+  const b=document.getElementById('cbadge');
+  b.textContent=n;b.style.display=n?'inline-block':'none';
+}
+function setPayMethod(m){
+  if(modifyingOrderId)modifyingPayMethod=m;else payMethod=m;
+  document.querySelectorAll('.pay-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.pay-btn.'+m).forEach(b=>b.classList.add('on'));
+}
+function renderCart(){
+  const tbl=document.getElementById('table-no').value.trim();
+  document.getElementById('cart-tbl').textContent='Meja: '+(tbl||'–');
+  document.getElementById('modify-banner').style.display=modifyingOrderId?'flex':'none';
+  const body=document.getElementById('cart-body');
+  if(!cart.length){
+    body.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg><p style="font-weight:700;">Tiada item dalam order</p><p style="font-size:13px;margin-top:4px;">Pergi ke tab Order untuk tambah minuman</p></div>`;
+    loadRecentOrders();return;
+  }
+  let tot=0,html='<div class="clist">';
+  cart.forEach((it,i)=>{
+    const sub=it.price*it.qty;tot+=sub;
+    const det=[it.temp==='hot'?'🔥 Hot':'❄️ Cold',it.qty>1?`x${it.qty}`:'',it.addons.length?it.addons.join(', '):'',it.notes?`"${it.notes}"`:'' ].filter(Boolean).join(' · ');
+    html+=`<div class="citem"><div class="ci-info"><div class="ci-name">${it.name}</div><div class="ci-det">${det}</div></div><div style="display:flex;align-items:center;gap:6px;"><span class="ci-price">RM${sub.toFixed(2)}</span><button class="ci-rm" onclick="rmCart(${i})">×</button></div></div>`;
+  });
+  const pm=modifyingOrderId?modifyingPayMethod:payMethod;
+  html+=`</div>
+  <div class="csum">
+    <div class="crow"><span>Jumlah item</span><span>${cart.reduce((s,i)=>s+i.qty,0)}</span></div>
+    ${modifyingOrderId?'<div class="crow" style="color:var(--orange);font-size:12px;"><span>⚠️ Bill ini akan ditanda MODIFIED</span></div>':''}
+    <div class="crow ctot"><span>TOTAL</span><span>RM${tot.toFixed(2)}</span></div>
+  </div>
+  <div style="padding:0 14px 4px;">
+    <p style="font-size:12px;font-weight:800;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Kaedah Bayaran</p>
+    <div class="pay-toggle">
+      <button class="pay-btn cash ${pm==='cash'?'on':''}" onclick="setPayMethod('cash')">💵 Cash</button>
+      <button class="pay-btn qr ${pm==='qr'?'on':''}" onclick="setPayMethod('qr')">📱 QR Pay</button>
+    </div>
+  </div>
+  <div class="cact">
+    <button class="btn1" onclick="submitOrder()">${modifyingOrderId?'✏️ Kemaskini Order':'Hantar Order'}</button>
+    <button class="btn2" onclick="clearCart()">Kosongkan</button>
+  </div>`;
+  body.innerHTML=html;
+  loadRecentOrders();
+}
+function rmCart(i){cart.splice(i,1);updBadge();renderCart();}
+function clearCart(){if(!cart.length)return;if(confirm('Kosongkan semua item?')){cart=[];updBadge();renderCart();}}
+
+async function submitOrder(){
+  const tbl=document.getElementById('table-no').value.trim();
+  if(!tbl){showToast('⚠️ Masukkan nombor meja dulu');gv('cashier',document.getElementById('n-cashier'));document.getElementById('table-no').focus();return;}
+  if(!cart.length){showToast('Troli kosong');return;}
+  const cashier=getCashier();
+  const tot=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const orderDate=document.getElementById('order-date').value||todayStr();
+  const now=new Date();
+  try{
+    if(modifyingOrderId){
+      const reason=await getReasonAsync('modify');
+      if(reason===null)return;
+      await db.collection('orders').doc(modifyingOrderId).update({
+        items:cart.map(i=>({...i})),total:tot,tableNo:tbl,date:orderDate,
+        payMethod:modifyingPayMethod,isModified:true,
+        editLog:firebase.firestore.FieldValue.arrayUnion({action:'modified',by:cashier,at:now.toISOString(),reason,newTotal:tot,payMethod:modifyingPayMethod})
+      });
+      showToast('✅ Order dikemaskini!');
+      modifyingOrderId=null;modifyingPayMethod='cash';
+    }else{
+      await db.collection('orders').add({
+        tableNo:tbl,items:cart.map(i=>({...i})),total:tot,
+        status:'pending',date:orderDate,payMethod,
+        timestamp:firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy:cashier,isModified:false,editLog:[]
+      });
+      showToast('✅ Order dihantar!');
+    }
+    cart=[];payMethod='cash';document.getElementById('table-no').value='';
+    updBadge();gv('cashier',document.getElementById('n-cashier'));
+  }catch(e){showToast('❌ Gagal hantar order');console.error(e);}
+}
+function cancelModifyMode(){modifyingOrderId=null;cart=[];updBadge();renderCart();document.getElementById('modify-banner').style.display='none';}
+
+// ══════════════════════════════════════════════
+//  RECENT ORDERS
+// ══════════════════════════════════════════════
+async function loadRecentOrders(){
+  const sec=document.getElementById('rec-sec');
+  const list=document.getElementById('rec-list');
+  sec.style.display='block';
+  list.innerHTML='<div class="ldr" style="padding:20px;">Loading…</div>';
+  try{
+    const snap=await db.collection('orders').where('date','==',todayStr()).orderBy('timestamp','desc').limit(15).get();
+    if(snap.empty){list.innerHTML='<div style="font-size:13px;color:var(--txt2);text-align:center;padding:16px;">Tiada order hari ini</div>';return;}
+    let html='';
+    snap.forEach(doc=>{
+      const o=doc.data();
+      const t=o.timestamp?.toDate?o.timestamp.toDate().toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'}):'–';
+      const itms=o.items.map(i=>`${i.name}(${i.temp==='hot'?'🔥':'❄️'})x${i.qty}`).join(', ');
+      const payBadge=o.payMethod==='qr'?'<span class="pbadge qr">📱 QR</span>':'<span class="pbadge cash">💵 Cash</span>';
+      const modBadge=o.isModified?'<span class="sbadge modified">MODIFIED</span>':'';
+      const canBadge=o.status==='cancelled'?'<span class="sbadge cancelled">CANCELLED</span>':'';
+      const doneBadge=o.status==='done'?'<span class="sbadge done">done</span>':'<span class="sbadge pending">pending</span>';
+      html+=`<div class="rec-card ${o.isModified?'modified':''} ${o.status==='cancelled'?'cancelled':''}">
+        <div class="rec-head">
+          <span class="rec-tbl">Meja ${o.tableNo}</span>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">${payBadge}${modBadge}${canBadge}${o.status!=='cancelled'?doneBadge:''}<span class="rec-time">${t}</span></div>
+        </div>
+        <div class="rec-items">${itms}</div>
+        <div class="rec-foot">
+          <span class="rec-total">RM${o.total.toFixed(2)}</span>
+          ${o.status!=='cancelled'?`<div class="rec-actions"><button class="btn-sm btn-modify" onclick="startModify('${doc.id}')">✏️ Ubah</button><button class="btn-sm btn-cancel" onclick="cancelOrder('${doc.id}')">✕ Batal</button></div>`:''}
+        </div>
+      </div>`;
+    });
+    list.innerHTML=html;
+  }catch(e){list.innerHTML='<div style="font-size:13px;color:var(--txt2);padding:12px;">Gagal load orders.</div>';}
+}
+async function startModify(orderId){
+  try{
+    const doc=await db.collection('orders').doc(orderId).get();
+    const o=doc.data();
+    cart=o.items.map(i=>({...i}));
+    document.getElementById('table-no').value=o.tableNo;
+    modifyingOrderId=orderId;modifyingPayMethod=o.payMethod||'cash';
+    updBadge();gv('cart',document.getElementById('n-cart'));
+    showToast('✏️ Mode edit aktif — ubah item lalu submit semula');
+  }catch(e){showToast('❌ Gagal load order');}
+}
+async function cancelOrder(orderId){
+  const reason=await getReasonAsync('cancel');
+  if(reason===null)return;
+  const cashier=getCashier();
+  await db.collection('orders').doc(orderId).update({
+    status:'cancelled',
+    editLog:firebase.firestore.FieldValue.arrayUnion({action:'cancelled',by:cashier,at:new Date().toISOString(),reason})
+  });
+  showToast('Order dibatalkan');loadRecentOrders();
+}
+
+// ══════════════════════════════════════════════
+//  REASON MODAL
+// ══════════════════════════════════════════════
+function getReasonAsync(type){return new Promise(resolve=>{selectedReason='';document.querySelectorAll('.ropt').forEach(r=>r.classList.remove('on'));document.getElementById('reason-custom').value='';document.getElementById('reason-modal').style.display='flex';reasonCallback=resolve;});}
+function selReason(el,r){document.querySelectorAll('.ropt').forEach(x=>x.classList.remove('on'));el.classList.add('on');selectedReason=r;document.getElementById('reason-custom').value='';}
+function confirmReason(){const custom=document.getElementById('reason-custom').value.trim();const final=custom||selectedReason;if(!final){showToast('Sila pilih atau tulis sebab');return;}document.getElementById('reason-modal').style.display='none';if(reasonCallback){reasonCallback(final);reasonCallback=null;}}
+function closeReason(){document.getElementById('reason-modal').style.display='none';if(reasonCallback){reasonCallback(null);reasonCallback=null;}}
+
+// ══════════════════════════════════════════════
+//  ADMIN AUTH
+// ══════════════════════════════════════════════
+async function doLogin(){
+  const em=document.getElementById('a-email').value.trim();
+  const pw=document.getElementById('a-pw').value;
+  document.getElementById('a-err').textContent='';
+  try{await auth.signInWithEmailAndPassword(em,pw);showPanel();}
+  catch{document.getElementById('a-err').textContent='Email atau password salah.';}
+}
+function showPanel(){
+  document.getElementById('sec-login').style.display='none';
+  document.getElementById('sec-panel').style.display='block';
+  loadOrders();
+}
+async function doLogout(){
+  await auth.signOut();
+  document.getElementById('sec-login').style.display='block';
+  document.getElementById('sec-panel').style.display='none';
+  document.getElementById('a-pw').value='';
+}
+async function pwReset(){
+  const em=document.getElementById('a-email').value.trim()||(auth.currentUser&&auth.currentUser.email);
+  if(!em){showToast('Masukkan email dulu');return;}
+  try{await auth.sendPasswordResetEmail(em);showToast('✅ Emel reset dihantar!');}
+  catch{showToast('❌ Gagal hantar emel');}
+}
+
+// ══════════════════════════════════════════════
+//  ADMIN — CASHIER MANAGEMENT
+// ══════════════════════════════════════════════
+async function loadCashierList(){
+  const el=document.getElementById('cashier-list');
+  el.innerHTML='<div class="ldr">Loading…</div>';
+  const snap=await db.collection('cashiers').orderBy('createdAt','desc').get();
+  if(snap.empty){el.innerHTML='<div class="ldr">Tiada cashier. Tambah di atas.</div>';return;}
+  let html='';
+  snap.forEach(doc=>{
+    const c=doc.data();
+    const initial=c.name.charAt(0).toUpperCase();
+    html+=`<div class="ccard">
+      <div class="cavatar">${initial}</div>
+      <div class="cinfo">
+        <div class="cname">${c.name}</div>
+        <div class="cid">ID: ${c.cashierId}</div>
+      </div>
+      <span class="cstatus ${c.active?'active':'inactive'}">${c.active?'Aktif':'Tidak Aktif'}</span>
+      <button class="creset" onclick="openResetPw('${doc.id}','${c.name}')">🔑</button>
+      <button class="cdel" onclick="delCashier('${doc.id}','${c.name}')">Padam</button>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+async function addCashier(){
+  const name=document.getElementById('nc-name').value.trim();
+  const cid=document.getElementById('nc-id').value.trim().toUpperCase();
+  const pw=document.getElementById('nc-pw').value;
+  if(!name||!cid||!pw){showToast('Isi semua maklumat cashier');return;}
+  if(pw.length<4){showToast('Password minimum 4 aksara');return;}
+  // check ID not duplicate
+  const exist=await db.collection('cashiers').where('cashierId','==',cid).get();
+  if(!exist.empty){showToast('ID cashier sudah wujud');return;}
+  await db.collection('cashiers').add({name,cashierId:cid,password:pw,active:true,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  document.getElementById('nc-name').value='';
+  document.getElementById('nc-id').value='';
+  document.getElementById('nc-pw').value='';
+  showToast(`✅ Cashier ${name} ditambah`);
+  loadCashierList();
+}
+
+async function delCashier(id,name){
+  if(!confirm(`Padam cashier "${name}"?`))return;
+  await db.collection('cashiers').doc(id).delete();
+  showToast(`${name} dipadam`);loadCashierList();
+}
+
+function openResetPw(id,name){
+  resetingCashierId=id;
+  document.getElementById('reset-cashier-name').textContent='Cashier: '+name;
+  document.getElementById('reset-new-pw').value='';
+  document.getElementById('reset-err').textContent='';
+  document.getElementById('reset-ovl').classList.add('show');
+}
+function closeResetOvl(e){if(e&&e.target!==document.getElementById('reset-ovl'))return;document.getElementById('reset-ovl').classList.remove('show');resetingCashierId=null;}
+async function confirmResetPw(){
+  const pw=document.getElementById('reset-new-pw').value;
+  if(pw.length<4){document.getElementById('reset-err').textContent='Minimum 4 aksara';return;}
+  await db.collection('cashiers').doc(resetingCashierId).update({password:pw});
+  document.getElementById('reset-ovl').classList.remove('show');
+  showToast('✅ Password dikemaskini');resetingCashierId=null;
+}
+
+// ══════════════════════════════════════════════
+//  ADMIN — ORDERS
+// ══════════════════════════════════════════════
+async function loadOrders(){
+  const df=document.getElementById('d-filter').value;
+  const el=document.getElementById('order-list');
+  el.innerHTML='<div class="ldr">Loading…</div>';
+  try{
+    let q=db.collection('orders').orderBy('timestamp','desc');
+    if(df)q=q.where('date','==',df);
+    const snap=await q.get();
+    if(snap.empty){el.innerHTML='<div class="ldr">Tiada order untuk tarikh ini.</div>';return;}
+    let html='';
+    snap.forEach(doc=>{
+      const o=doc.data();
+      const t=o.timestamp?.toDate?o.timestamp.toDate().toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'}):'–';
+      const itms=o.items.map(i=>{let s=`${i.name}(${i.temp==='hot'?'🔥':'❄️'})x${i.qty}`;if(i.addons&&i.addons.length)s+=` [${i.addons.join(', ')}]`;if(i.notes)s+=` "${i.notes}"`;return s;}).join('<br>');
+      const payBadge=o.payMethod==='qr'?'<span class="pbadge qr">📱 QR</span>':'<span class="pbadge cash">💵 Cash</span>';
+      let auditHtml='';
+      if(o.editLog&&o.editLog.length){
+        auditHtml='<div class="audit-log"><p>📝 Log Perubahan:</p>';
+        o.editLog.forEach(e=>{
+          const at=new Date(e.at).toLocaleString('en-MY',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
+          const pmChange=e.payMethod?` · bayar: ${e.payMethod==='qr'?'📱 QR':'💵 Cash'}`:'';
+          auditHtml+=`<div class="audit-entry"><span class="audit-by">${e.by}</span><span class="audit-action ${e.action}"> ${e.action==='modified'?'✏️ ubah':'✕ batal'}</span> — ${e.reason} <span style="color:var(--txt2);">(${at})</span>${e.newTotal!==undefined?` → RM${e.newTotal.toFixed(2)}`:''}${pmChange}</div>`;
+        });
+        auditHtml+='</div>';
+      }
+      const sc=o.status==='cancelled'?'cancelled':o.isModified?'modified':'';
+      html+=`<div class="ocard ${sc}">
+        <div class="ochead">
+          <div><div class="otbl">Meja ${o.tableNo}</div><div style="font-size:11px;color:var(--txt2);">Oleh: ${o.createdBy||'–'} · ${t}</div></div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;">
+            ${payBadge}${o.isModified?'<span class="sbadge modified">MODIFIED</span>':''}
+            ${o.status==='cancelled'?'<span class="sbadge cancelled">CANCELLED</span>':o.status==='done'?'<span class="sbadge done">done</span>':'<span class="sbadge pending">pending</span>'}
+          </div>
+        </div>
+        <div class="oitms">${itms}</div>
+        <div class="ofoot"><span class="otot">RM${o.total.toFixed(2)}</span>${o.status==='pending'?`<button class="mdone" onclick="markDone('${doc.id}',this)">✓ Selesai</button>`:''}</div>
+        ${auditHtml}
+      </div>`;
+    });
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<div class="ldr">⚠️ Ralat load orders.</div>';console.error(e);}
+}
+async function markDone(id,btn){
+  await db.collection('orders').doc(id).update({status:'done'});
+  const card=btn.closest('.ocard');
+  card.querySelector('.sbadge.pending').outerHTML='<span class="sbadge done">done</span>';
+  btn.remove();
+}
+
+// ══════════════════════════════════════════════
+//  ADMIN — MENU EDITOR
+// ══════════════════════════════════════════════
+async function loadMenuEditor(){
+  const el=document.getElementById('menu-edit-list');el.innerHTML='<div class="ldr">Loading…</div>';
+  const snap=await db.collection('beverages').orderBy('order').get();
+  let html='';
+  snap.forEach(doc=>{
+    const it=doc.data();
+    html+=`<div class="eicard">
+      <div class="eichd"><h4>${it.name}</h4><label class="tswitch"><input type="checkbox" ${it.available!==false?'checked':''} onchange="togAvail('${doc.id}',this.checked)"/><span class="tslider"></span></label></div>
+      <div class="pf2"><div class="pf"><label>🔥 Hot (RM)</label><input type="number" step="0.50" value="${it.hotPrice}" id="h-${doc.id}" inputmode="decimal"/></div><div class="pf"><label>❄️ Cold (RM)</label><input type="number" step="0.50" value="${it.coldPrice}" id="c-${doc.id}" inputmode="decimal"/></div></div>
+      <div class="eibtn"><button class="btn3" onclick="saveItem('${doc.id}','${it.name}')">Simpan</button><button class="btn4" onclick="delItem('${doc.id}','${it.name}')">Padam</button></div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+async function saveItem(id,name){const h=parseFloat(document.getElementById('h-'+id).value);const c=parseFloat(document.getElementById('c-'+id).value);if(isNaN(h)||isNaN(c)){showToast('Harga tidak sah');return;}await db.collection('beverages').doc(id).update({hotPrice:h,coldPrice:c});showToast(`✅ ${name} dikemaskini`);loadMenu();}
+async function togAvail(id,val){await db.collection('beverages').doc(id).update({available:val});loadMenu();}
+async function delItem(id,name){if(!confirm(`Padam "${name}" dari menu?`))return;await db.collection('beverages').doc(id).delete();loadMenuEditor();loadMenu();showToast(`${name} dipadam`);}
+async function addItem(){
+  const name=document.getElementById('ni-name').value.trim();
+  const hot=parseFloat(document.getElementById('ni-hot').value);
+  const cold=parseFloat(document.getElementById('ni-cold').value);
+  if(!name||isNaN(hot)||isNaN(cold)){showToast('Isi semua maklumat');return;}
+  const snap=await db.collection('beverages').orderBy('order','desc').limit(1).get();
+  const lastOrd=snap.empty?0:(snap.docs[0].data().order||0)+1;
+  await db.collection('beverages').add({name,hotPrice:hot,coldPrice:cold,available:true,order:lastOrd});
+  document.getElementById('ni-name').value='';document.getElementById('ni-hot').value='';document.getElementById('ni-cold').value='';
+  showToast(`✅ ${name} ditambah`);loadMenuEditor();loadMenu();
+}
+
+// ══════════════════════════════════════════════
+//  SALES CHART
+// ══════════════════════════════════════════════
+function setRange(days,btn){chartDays=days;document.querySelectorAll('.crbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');loadChart(days);}
+async function loadChart(days){
+  const dates=[];for(let i=days-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);dates.push(d.toISOString().split('T')[0]);}
+  const from=dates[0],to=dates[dates.length-1];
+  const snap=await db.collection('orders').where('date','>=',from).where('date','<=',to).get();
+  const salesMap={},itemMap={};dates.forEach(d=>salesMap[d]=0);
+  snap.forEach(doc=>{const o=doc.data();if(o.status==='cancelled')return;if(salesMap[o.date]!==undefined)salesMap[o.date]+=o.total||0;if(o.date===todayStr()&&o.items)o.items.forEach(it=>{itemMap[it.name]=(itemMap[it.name]||0)+it.qty;});});
+  const labels=dates.map(d=>d.slice(5));
+  const values=dates.map(d=>parseFloat(salesMap[d].toFixed(2)));
+  const todayTotal=salesMap[todayStr()]||0;
+  const weekTotal=Object.values(salesMap).reduce((a,b)=>a+b,0);
+  const nonZero=values.filter(v=>v>0);
+  const todayOrders=snap.docs.filter(d=>d.data().date===todayStr()&&d.data().status!=='cancelled').length;
+  document.getElementById('stat-today').textContent='RM'+todayTotal.toFixed(2);
+  document.getElementById('stat-orders').textContent=todayOrders;
+  document.getElementById('stat-week').textContent='RM'+weekTotal.toFixed(2);
+  document.getElementById('stat-avg').textContent=nonZero.length?'RM'+(nonZero.reduce((a,b)=>a+b,0)/nonZero.length).toFixed(2):'RM0';
+  if(salesChartInst)salesChartInst.destroy();
+  salesChartInst=new Chart(document.getElementById('sales-chart'),{type:'bar',data:{labels,datasets:[{label:'Jualan (RM)',data:values,backgroundColor:'rgba(192,57,43,0.15)',borderColor:'#c0392b',borderWidth:2,borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'RM'+v}}}}});
+  const topEntries=Object.entries(itemMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(topChartInst)topChartInst.destroy();
+  if(topEntries.length){topChartInst=new Chart(document.getElementById('top-chart'),{type:'bar',data:{labels:topEntries.map(e=>e[0]),datasets:[{label:'Qty',data:topEntries.map(e=>e[1]),backgroundColor:['#c0392b','#e67e22','#f39c12','#27ae60','#2980b9'],borderRadius:6}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1}}}}});}
+}
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function gv(v,btn){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  btn.classList.add('active');
+  if(v==='cart')renderCart();
+  // if going to admin while not logged in, show login form
+  if(v==='admin'){
+    if(!auth.currentUser){
+      document.getElementById('sec-login').style.display='block';
+      document.getElementById('sec-panel').style.display='none';
+    }
+  }
+}
+function aTab(t,btn){
+  ['orders','chart','cashiers','menu','settings'].forEach(x=>{document.getElementById('at-'+x).style.display=x===t?'block':'none';});
+  document.querySelectorAll('.atab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  if(t==='menu')loadMenuEditor();
+  if(t==='orders')loadOrders();
+  if(t==='chart')loadChart(chartDays);
+  if(t==='cashiers')loadCashierList();
+}
+
+// ══════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+</script>
+</body>
+</html>
